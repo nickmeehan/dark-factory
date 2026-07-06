@@ -17,6 +17,10 @@ Turn a plain-English process description into a validated `.fabro` workflow.
 4. **Render**: `fabro graph <file>.fabro -o <file>.svg` and eyeball the shape.
 5. **Dry-run**: `fabro run <file>.fabro --dry-run` (simulated LLM backend) before a real run.
 
+When writing a PR or doc that shows a workflow, include a Mermaid rendering —
+via `bin/dot2mermaid <file>.fabro` if this repo's converter is available,
+otherwise by hand (nodes/edges map 1:1; pick the nearest Mermaid shape).
+
 Prefer deterministic verification (command nodes running tests/linters) over
 LLM judgment wherever possible — that's what makes a factory "dark".
 

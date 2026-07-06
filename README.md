@@ -19,6 +19,9 @@ in this repo or injected into any other project.
   Fabro. Works in both Claude Code (`.claude/skills/` symlinks) and Fabro
   itself (`{git_root}/skills/` is a native Fabro skill directory).
   - `fabro-workflow-author` — plain-English description → validated `.fabro` workflow.
+- **`bin/dot2mermaid`** — zero-dependency Ruby converter from `.fabro`/DOT
+  graphs to Mermaid flowcharts, for PR descriptions and docs (GitHub renders
+  Mermaid inline; lossy: conditions become edge labels, prompts/models drop).
 
 To inject skills into another project: copy or symlink a skill directory into
 that project's `.claude/skills/` (Claude Code) or `.fabro/skills/` (Fabro).
