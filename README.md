@@ -23,8 +23,22 @@ in this repo or injected into any other project.
   graphs to Mermaid flowcharts, for PR descriptions and docs (GitHub renders
   Mermaid inline; lossy: conditions become edge labels, prompts/models drop).
 
-To inject skills into another project: copy or symlink a skill directory into
-that project's `.claude/skills/` (Claude Code) or `.fabro/skills/` (Fabro).
+## Install as a Claude Code plugin
+
+```
+/plugin marketplace add nickmeehan/dark-factory
+/plugin install fabro@dark-factory
+```
+
+Skills become available in every project you open; the `fabro-docs/` mirror
+rides along in the plugin cache for offline deep reference (the skill fetches
+docs.fabro.sh live for anything version-sensitive). For a single machine
+without the plugin system, symlinking works too:
+`ln -s "$PWD/skills/fabro-workflow-author" ~/.claude/skills/`.
+
+To inject skills into another project directly: copy or symlink a skill
+directory into that project's `.claude/skills/` (Claude Code) or
+`.fabro/skills/` (Fabro).
 
 ## Upstream sources
 
