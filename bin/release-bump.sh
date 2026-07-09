@@ -8,13 +8,18 @@ if [[ $# -ne 1 || ! "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   exit 64
 fi
 
-manifest="$(git rev-parse --show-toplevel)/.claude-plugin/plugin.json"
+root="$(git rev-parse --show-toplevel)"
 # ponytail: ruby instead of jq — jq isn't guaranteed locally, ruby is the repo's scripting language
+# Single plugin, so the marketplace version tracks the plugin version in lockstep.
 ruby -rjson -e '
-  path, version = ARGV
-  j = JSON.parse(File.read(path))
+  version = ARGV.shift
+  plugin, marketplace = ARGV
+  j = JSON.parse(File.read(plugin))
   j["version"] = version
-  File.write(path, JSON.pretty_generate(j) + "\n")
-' "$manifest" "$1"
+  File.write(plugin, JSON.pretty_generate(j) + "\n")
+  m = JSON.parse(File.read(marketplace))
+  m["metadata"]["version"] = version
+  File.write(marketplace, JSON.pretty_generate(m) + "\n")
+' "$1" "$root/.claude-plugin/plugin.json" "$root/.claude-plugin/marketplace.json"
 
-echo "release-bump: fabro $1"
+echo "release-bump: fabro + marketplace $1"

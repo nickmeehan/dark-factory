@@ -2,7 +2,8 @@
   "name": "dark-factory",
   "owner": { "name": "nickmeehan" },
   "metadata": {
-    "description": "Fabro dark-factory tooling for Claude Code"
+    "description": "Fabro dark-factory tooling for Claude Code",
+    "version": "0.1.0"
   },
   "plugins": [
     {
