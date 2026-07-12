@@ -1,0 +1,14 @@
+{
+  "name": "dark-factory",
+  "owner": { "name": "nickmeehan" },
+  "metadata": {
+    "description": "Fabro dark-factory tooling for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "fabro",
+      "description": "Author, validate, and run Fabro dark-factory workflows from plain English. Ships the full Fabro knowledge base and a DOT→Mermaid renderer.",
+      "source": "./"
+    }
+  ]
+}
