@@ -25,9 +25,12 @@ in this repo or injected into any other project.
 
 ## Install as a Claude Code plugin
 
+Distributed as the `fabro` plugin via the
+[ichiba](https://github.com/nickmeehan/ichiba) marketplace:
+
 ```
-/plugin marketplace add nickmeehan/dark-factory
-/plugin install fabro@dark-factory
+/plugin marketplace add nickmeehan/ichiba
+/plugin install fabro@ichiba
 ```
 
 Skills become available in every project you open; the `fabro-docs/` mirror
