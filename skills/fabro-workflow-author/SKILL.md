@@ -82,8 +82,15 @@ edge is the default fallback.
 
 ## Deep reference
 
-Read the full docs before using features not covered above. If this repo has a
-`fabro-docs/` mirror, read locally; otherwise fetch from docs.fabro.sh:
+Read the full docs before using features not covered above. A `fabro-docs/`
+mirror ships alongside this skill (at the repo/plugin root, two directories up
+from this file); read it locally, or fetch from docs.fabro.sh if absent.
+
+The mirror is a snapshot and may be stale — plugin installs are cached clones.
+For anything version-sensitive (the changelog, a feature not covered here, or
+when observed `fabro` behavior disagrees with the local docs), fetch the live
+page from docs.fabro.sh instead: same paths as below, index at
+`https://docs.fabro.sh/llms.txt`.
 
 - `fabro-docs/reference/dot-language.md` — full language spec
 - `fabro-docs/workflows/*.md` — transitions, variables, imports, stylesheets, human gates
