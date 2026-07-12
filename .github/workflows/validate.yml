@@ -17,7 +17,7 @@ jobs:
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Validate marketplace and plugin manifests
+      - name: Validate plugin manifest
         run: claude plugin validate .
 
       - name: Run tests
