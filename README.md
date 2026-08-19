@@ -16,8 +16,10 @@ in this repo or injected into any other project.
   as raw markdown (~240 pages: concepts, language spec, CLI, API, tutorials).
   The weekly `Docs Sync` workflow re-runs `bin/sync-docs.sh` and merges any
   upstream drift into `main`, which cuts a patch release so the refreshed
-  mirror ships with the plugin. Run the script by hand to refresh off-schedule;
-  `git diff` shows upstream changes.
+  mirror ships with the plugin. The sync adds, updates, and prunes pages, and
+  refuses to prune more than 10% of the mirror in one run — raise that with
+  `PRUNE_LIMIT=n` when a large removal is genuine. Run the script by hand to
+  refresh off-schedule; `git diff` shows upstream changes.
 - **`skills/`** — Agent Skills (`SKILL.md` format) that make agents fluent in
   Fabro. Works in both Claude Code (`.claude/skills/` symlinks) and Fabro
   itself (`{git_root}/skills/` is a native Fabro skill directory).

@@ -29,9 +29,10 @@ jobs:
 
       - name: Guard against a partial fetch
         run: |
-          # curl -f leaves a zero-byte file behind on an HTTP error. sync-docs.sh
-          # is fail-closed enough to abort the run, but an empty page must never
-          # reach main even if a future change loosens that.
+          # sync-docs.sh stages the fetch and refuses to land empty pages, so
+          # this should never fire. It stays because this workflow merges to
+          # main unattended, and a future change to the script must not be able
+          # to quietly turn that guarantee off.
           if find fabro-docs -type f -empty | grep -q .; then
             echo "::error::upstream fetch was partial - empty pages written"
             find fabro-docs -type f -empty
@@ -52,6 +53,7 @@ jobs:
             echo "pages=$(find fabro-docs -name '*.md' | wc -l | tr -d ' ')"
             echo "added=$(printf '%s\n' "$status" | grep -c '^??' || true)"
             echo "updated=$(printf '%s\n' "$status" | grep -c '^ M' || true)"
+            echo "removed=$(printf '%s\n' "$status" | grep -c '^ D' || true)"
           } >> "$GITHUB_OUTPUT"
 
       - name: Merge the sync
@@ -65,6 +67,7 @@ jobs:
           PAGES: ${{ steps.drift.outputs.pages }}
           ADDED: ${{ steps.drift.outputs.added }}
           UPDATED: ${{ steps.drift.outputs.updated }}
+          REMOVED: ${{ steps.drift.outputs.removed }}
         run: |
           BODY=$(printf '%s\n' \
             'Mirrors docs.fabro.sh into fabro-docs/ via bin/sync-docs.sh.' \
@@ -72,6 +75,7 @@ jobs:
             "- pages: $PAGES" \
             "- added: $ADDED" \
             "- updated: $UPDATED" \
+            "- removed: $REMOVED" \
             '' \
             "Opened by .github/workflows/docs-sync.yml (run $GITHUB_RUN_ID).")
 
