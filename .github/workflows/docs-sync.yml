@@ -25,7 +25,13 @@ jobs:
           persist-credentials: true
 
       - name: Mirror docs.fabro.sh
-        run: bin/sync-docs.sh
+        id: sync
+        run: |
+          # pipefail is not on by default here, and tee would otherwise swallow
+          # a failed sync and let the job carry on as though it had worked.
+          set -o pipefail
+          bin/sync-docs.sh | tee "$RUNNER_TEMP/sync.log"
+          echo "summary=$(tail -1 "$RUNNER_TEMP/sync.log")" >> "$GITHUB_OUTPUT"
 
       - name: Guard against a partial fetch
         run: |
@@ -68,6 +74,10 @@ jobs:
           ADDED: ${{ steps.drift.outputs.added }}
           UPDATED: ${{ steps.drift.outputs.updated }}
           REMOVED: ${{ steps.drift.outputs.removed }}
+          # Carries the count of pages that would not fetch and kept their
+          # existing copy - the one outcome the diff cannot show, since a
+          # carried page is byte-identical to one upstream did not change.
+          SUMMARY: ${{ steps.sync.outputs.summary }}
         run: |
           BODY=$(printf '%s\n' \
             'Mirrors docs.fabro.sh into fabro-docs/ via bin/sync-docs.sh.' \
@@ -76,6 +86,8 @@ jobs:
             "- added: $ADDED" \
             "- updated: $UPDATED" \
             "- removed: $REMOVED" \
+            '' \
+            "$SUMMARY" \
             '' \
             "Opened by .github/workflows/docs-sync.yml (run $GITHUB_RUN_ID).")
 
