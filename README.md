@@ -14,8 +14,8 @@ in this repo or injected into any other project.
 
 - **`fabro-docs/`** — full mirror of [docs.fabro.sh](https://docs.fabro.sh)
   as raw markdown (~240 pages: concepts, language spec, CLI, API, tutorials).
-  The weekly `Docs Sync` workflow re-runs `bin/sync-docs.sh` and merges any
-  upstream drift into `main`, which cuts a patch release so the refreshed
+  The weekly `Docs Sync` workflow re-runs `bin/sync-docs.sh` and commits any
+  upstream drift to `main`, which cuts a patch release so the refreshed
   mirror ships with the plugin. `llms.txt` decides what the mirror holds: a
   page it no longer lists is pruned, a page it lists that won't fetch keeps its
   existing copy. Both have a tolerance — `FAIL_LIMIT` (5%) and `PRUNE_LIMIT`

@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
       actions: write
     steps:
       - uses: actions/checkout@v4
@@ -62,10 +61,9 @@ jobs:
             echo "removed=$(printf '%s\n' "$status" | grep -c '^ D' || true)"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Merge the sync
+      - name: Push the sync to main
         if: steps.drift.outputs.drift == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # fix(), not docs(), on purpose: semantic-release's default rules give
           # docs: no release, and the mirror ships inside the plugin, so a
           # docs-only sync still needs to cut a version to reach users.
@@ -89,40 +87,27 @@ jobs:
             '' \
             "$SUMMARY" \
             '' \
-            "Opened by .github/workflows/docs-sync.yml (run $GITHUB_RUN_ID).")
+            "Pushed by .github/workflows/docs-sync.yml (run $GITHUB_RUN_ID).")
 
-          branch="docs-sync/$GITHUB_RUN_ID"
           git config user.name dark-factory-release-bot
           git config user.email dark-factory-release-bot@users.noreply.github.com
-          git switch -c "$branch"
           git add -A fabro-docs
           git commit -m "$SUBJECT" -m "$BODY"
-          git push -u origin "$branch"
-          # Back to main so gh is never merging the branch it has checked out.
-          git switch main
 
-          gh pr create --base main --head "$branch" --title "$SUBJECT" --body "$BODY"
-
-          # GitHub can still be computing mergeability right after the PR opens,
-          # so retry - but re-check state first, since a retry after a merge that
-          # actually landed would fail for the wrong reason.
-          for attempt in 1 2 3 4 5; do
-            if gh pr merge "$branch" --squash --subject "$SUBJECT" --body "$BODY"; then
-              break
+          # semantic-release pushes its own commit to main, so main can move
+          # between this job's checkout and this push. The two never touch the
+          # same paths - this commit is fabro-docs/ only, that one is the
+          # manifest only - so rebase and retry resolves the race cleanly.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
             fi
-            if [ "$(gh pr view "$branch" --json state --jq .state)" = 'MERGED' ]; then
-              break
-            fi
-            if [ "$attempt" -eq 5 ]; then
-              echo '::error::could not merge the docs sync PR'
-              exit 1
-            fi
-            echo "merge attempt $attempt failed, retrying"
-            sleep 5
+            echo "push rejected, rebasing onto main (attempt $attempt)"
+            git fetch origin main
+            git rebase origin/main
           done
-
-          # Best-effort: the branch may already be gone if a retry landed the merge.
-          git push origin --delete "$branch" || true
+          echo '::error::could not push the docs sync to main'
+          exit 1
 
       - name: Release the synced docs
         if: steps.drift.outputs.drift == 'true'
