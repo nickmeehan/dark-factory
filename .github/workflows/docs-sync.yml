@@ -1,0 +1,119 @@
+name: Docs Sync
+
+on:
+  schedule:
+    # Weekly, Monday 09:17 UTC. Off the hour to dodge the cron stampede.
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: docs-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Mirror docs.fabro.sh
+        id: sync
+        run: |
+          # pipefail is not on by default here, and tee would otherwise swallow
+          # a failed sync and let the job carry on as though it had worked.
+          set -o pipefail
+          bin/sync-docs.sh | tee "$RUNNER_TEMP/sync.log"
+          echo "summary=$(tail -1 "$RUNNER_TEMP/sync.log")" >> "$GITHUB_OUTPUT"
+
+      - name: Guard against a partial fetch
+        run: |
+          # sync-docs.sh stages the fetch and refuses to land empty pages, so
+          # this should never fire. It stays because this workflow merges to
+          # main unattended, and a future change to the script must not be able
+          # to quietly turn that guarantee off.
+          if find fabro-docs -type f -empty | grep -q .; then
+            echo "::error::upstream fetch was partial - empty pages written"
+            find fabro-docs -type f -empty
+            exit 1
+          fi
+
+      - name: Detect drift
+        id: drift
+        run: |
+          if [ -z "$(git status --porcelain --untracked-files=all -- fabro-docs)" ]; then
+            echo 'mirror already matches upstream'
+            echo 'drift=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          status=$(git status --porcelain --untracked-files=all -- fabro-docs)
+          {
+            echo 'drift=true'
+            echo "pages=$(find fabro-docs -name '*.md' | wc -l | tr -d ' ')"
+            echo "added=$(printf '%s\n' "$status" | grep -c '^??' || true)"
+            echo "updated=$(printf '%s\n' "$status" | grep -c '^ M' || true)"
+            echo "removed=$(printf '%s\n' "$status" | grep -c '^ D' || true)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Push the sync to main
+        if: steps.drift.outputs.drift == 'true'
+        env:
+          # fix(), not docs(), on purpose: semantic-release's default rules give
+          # docs: no release, and the mirror ships inside the plugin, so a
+          # docs-only sync still needs to cut a version to reach users.
+          SUBJECT: 'fix(docs): sync fabro docs mirror'
+          PAGES: ${{ steps.drift.outputs.pages }}
+          ADDED: ${{ steps.drift.outputs.added }}
+          UPDATED: ${{ steps.drift.outputs.updated }}
+          REMOVED: ${{ steps.drift.outputs.removed }}
+          # Carries the count of pages that would not fetch and kept their
+          # existing copy - the one outcome the diff cannot show, since a
+          # carried page is byte-identical to one upstream did not change.
+          SUMMARY: ${{ steps.sync.outputs.summary }}
+        run: |
+          BODY=$(printf '%s\n' \
+            'Mirrors docs.fabro.sh into fabro-docs/ via bin/sync-docs.sh.' \
+            '' \
+            "- pages: $PAGES" \
+            "- added: $ADDED" \
+            "- updated: $UPDATED" \
+            "- removed: $REMOVED" \
+            '' \
+            "$SUMMARY" \
+            '' \
+            "Pushed by .github/workflows/docs-sync.yml (run $GITHUB_RUN_ID).")
+
+          git config user.name dark-factory-release-bot
+          git config user.email dark-factory-release-bot@users.noreply.github.com
+          git add -A fabro-docs
+          git commit -m "$SUBJECT" -m "$BODY"
+
+          # semantic-release pushes its own commit to main, so main can move
+          # between this job's checkout and this push. The two never touch the
+          # same paths - this commit is fabro-docs/ only, that one is the
+          # manifest only - so rebase and retry resolves the race cleanly.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "push rejected, rebasing onto main (attempt $attempt)"
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo '::error::could not push the docs sync to main'
+          exit 1
+
+      - name: Release the synced docs
+        if: steps.drift.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # A push made with GITHUB_TOKEN does not start another workflow run, so
+        # Release has to be dispatched explicitly. workflow_dispatch is the one
+        # event GITHUB_TOKEN may still trigger.
+        run: gh workflow run release.yml --ref main

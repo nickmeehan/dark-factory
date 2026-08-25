@@ -3,6 +3,9 @@ name: Release
 on:
   push:
     branches: [main]
+  # Docs Sync dispatches this: a push made with GITHUB_TOKEN cannot start a
+  # workflow run on its own.
+  workflow_dispatch:
 
 concurrency:
   group: release
